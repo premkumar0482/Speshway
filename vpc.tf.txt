@@ -1,0 +1,107 @@
+provider "aws" {
+  region = "ap-south-1"
+}
+resource "aws_vpc" "myvpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "vpc01"
+  }
+}
+resource "aws_subnet" "public_subnet" {
+  vpc_id = aws_vpc.myvpc.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "ap-south-1a"
+
+  tags = {
+    Name = "Publicsubnet"
+ }
+}
+
+resource "aws_subnet" "private_subnet" {
+  vpc_id = aws_vpc.myvpc.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "ap-south-1b"
+
+  tags = {
+    Name = "Privatesubnet"
+  }
+}
+
+resource "aws_internet_gateway" "myigw" {
+  vpc_id = aws_vpc.myvpc.id
+
+  tags = {
+    Name = "igw1"
+  }
+}
+
+resource "aws_route_table" "public_rt" {
+  vpc_id = aws_vpc.myvpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.myigw.id
+  }
+  tags = {
+    Name = "PublicRT"
+  }
+}
+resource "aws_route_table_association" "public_rta" {
+  subnet_id = aws_subnet.public_subnet.id
+  route_table_id = aws_route_table.public_rt.id
+}
+
+resource "aws_route_table" "private_rt" {
+  vpc_id = aws_vpc.myvpc.id
+
+  tags = {
+    Name = "PrivateRT"
+}
+}
+
+resource "aws_route_table_association" "private_rta" {
+  subnet_id = aws_subnet.private_subnet.id
+  route_table_id = aws_route_table.private_rt.id
+}
+
+resource "aws_security_group" "vpc_sg" {
+  vpc_id = aws_vpc.myvpc.id
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  } 
+  tags = {
+    Name = "VpcSG"
+  }
+}
+
+resource "aws_instance" "public_instance" {
+  ami  = "ami-0fd05997b4dff7aac"
+  instance_type  = "t2.micro"
+  key_name = "keypair1"
+  vpc_security_group_ids = [aws_security_group.vpc_sg.id]
+  subnet_id  = aws_subnet.public_subnet.id
+  depends_on  = [ aws_vpc.myvpc ]
+  tags = {
+    Name= "PublicEC2"
+  }
+}
+
+resource "aws_instance" "private_instance" {
+  ami = "ami-0fd05997b4dff7aac"
+  instance_type = "t2.micro"
+  key_name  = "keypair1"
+  vpc_security_group_ids = [aws_security_group.vpc_sg.id]
+  subnet_id = aws_subnet.private_subnet.id
+  depends_on  = [ aws_vpc.myvpc ]
+  tags = {
+    Name= "PrivateEC2"
+  }
+}

@@ -1,0 +1,32 @@
+provider "aws" {
+  region = "ap-south-1" 
+}
+
+resource "aws_security_group" "my_sg" {
+  name        = "SSH2"
+  description = "Allow SSH inbound traffic"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_instance" "my_instance" {
+  ami           = "ami-0b7207e48d1b6c06f" 
+  instance_type = "t2.micro"
+  key_name      = "keypair1"
+  vpc_security_group_ids = [aws_security_group.my_sg.id]
+  tags = {
+    Name = "MyTerraformInstance"
+  }
+}
