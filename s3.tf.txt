@@ -1,0 +1,68 @@
+provider "aws" {
+    region = "ap-south-1"
+}
+
+resource "aws_s3_bucket" "first_bucket" {
+  bucket = "s3-bucket-2025"  
+
+  tags  = {
+    Environment = "prob"
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "pab" {
+  bucket                    = aws_s3_bucket.first_bucket.id
+  block_public_acls         = false
+  block_public_policy       = false
+  ignore_public_acls        = false
+  restrict_public_buckets   = false
+  
+}
+
+resource "aws_s3_bucket_versioning" "first_version" {
+  bucket = aws_s3_bucket.first_bucket.id
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_object" "first_object"{
+  bucket = aws_s3_bucket.first_bucket.id
+  key    = "myfile.txt"  
+  source = "C:/Users/Admin/Desktop/New/Task/myfile.txt"    
+}
+
+resource "aws_s3_bucket_policy" "first_policy" {
+  bucket = aws_s3_bucket.first_bucket.id
+  
+  policy =  jsonencode({
+
+  "Version"     : "2012-10-17",
+  "Statement"   : [
+      {
+        "Effect"    : "Allow",
+        "Action"    : ["s3:GetObject"],
+        "Resource"  : "${aws_s3_bucket.first_bucket.arn}/*",
+        "Principal" : "*",
+      },
+      {
+        "Effect"    : "Deny",
+        "Action"    : ["s3:PutObject"],
+        "Resource"  : "${aws_s3_bucket.first_bucket.arn}/*",
+        "Principal" : "*",
+      },
+      {
+        "Effect"    : "Deny",
+        "Action"    : ["s3:DeleteObject"],
+        "Resource"  : "${aws_s3_bucket.first_bucket.arn}/*",
+        "Principal" : "*",
+      },
+      {
+        "Effect"    : "Deny",
+        "Action"    : ["s3:DeleteObjectVersion"],
+        "Resource"  : "${aws_s3_bucket.first_bucket.arn}/*",
+        "Principal" : "*",  
+      }
+    ]
+ })
+}
